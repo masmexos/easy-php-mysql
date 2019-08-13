@@ -2,6 +2,9 @@
 
 require_once("lib_epms.php");
 
+
+
+
 /****************************************************************/
 //TESTING ZONE
 /****************************************************************/
@@ -17,11 +20,12 @@ require_once("lib_epms.php");
 
 //echo "<br><br>------PROBANDO SELECT-------<br><br>";
 
+//log_error("MYSQL","Error de ejemplo");
+
 $array_params=crearArrayParametros('select');
 $array_params=agregarParametroObjetivo($array_params,'*');
 $select_especial_filters=crearArraySelectEspecialFilters(3,1,"ASC","id");
 //$resultado=ejecutarConsulta($conexion,"prueba",$array_params,false,false,$select_especial_filters); var_dump($resultado);
-
 //echo "<br><br>------PROBANDO INSERT-------<br><br>";
 
 $array_params=crearArrayParametros('insert');

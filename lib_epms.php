@@ -82,6 +82,7 @@ function conectarBD($tipo=false,$bd=false,$host=false,$username=false,$password=
     //$password=$password;
   }else {
     //HAY UN ERROR EN LA DISPOSICIÓN DE PARAMETROS HAY QUE USAR $tipo O EL METODO $username Y $password
+    log_error("conectarBD","Error en la declaración de parametros. Se estan intentado usar 2 metodos simultaneamente");
     return false;
   }
 
@@ -91,6 +92,7 @@ function conectarBD($tipo=false,$bd=false,$host=false,$username=false,$password=
     return $conexion;
   } catch (PDOException $e) {
     //ERROR EN LA CONEXION
+    log_error("conectarBD","Error en la conexión con la base de datos");
     return false;
   }
 }
@@ -116,7 +118,7 @@ function crearArrayParametros($tipo_consulta){
 }
 
 
-
+//FUNCION CREAR ARRAY PARA FILTROS ESPECIALES PARA CONSULTAS DE TIPO SELECT
 function crearArraySelectEspecialFilters($limit=false,$offset=false,$order=false,$order_param=false){
 
   $select_especial_filters=array();
@@ -154,14 +156,17 @@ function agregarParametroObjetivo($array_params,$var_key,$var_value=false,$var_v
     return false;
   }
   if ($array_params['tipo_consulta']!='select' && $array_params['tipo_consulta']!='delete' && !$var_value && !$optional) {
-    //error se debe introducir un $var_value para el array especificado
+    //error se debe introducir un var_value para el array especificado
+    log_error("agregarParametroObjetivo","Error se debe introducir un var_value para el array especificado");
     return false;
   }
   if (!$var_key || $var_key=="") {
     //error es necesario una var_key para el elemento
+    log_error("agregarParametroObjetivo","Error se debe introducir un var_key para el array especificado");
     return false;
   }
   if ($var_value && !$var_value_tipo) {
+    log_error("agregarParametroObjetivo","Error se debe introducir el tipo para el var_value especificado");
     //error se debe introducir el tipo para el $var_value especificado
     return false;
   }
@@ -172,6 +177,7 @@ function agregarParametroObjetivo($array_params,$var_key,$var_value=false,$var_v
     $var_value=sanitizarValor($var_value,$var_value_tipo);
     if (!$var_value && !$optional) {
       //error al sanitizar el valor: se devolvio false y este no es opcional
+      log_error("agregarParametroObjetivo","Error al sanitizar el valor: se devolvio false y este no es opcional");
       return false;
     }elseif (!$var_value && $optional) {
       $var_value="";
@@ -182,6 +188,7 @@ function agregarParametroObjetivo($array_params,$var_key,$var_value=false,$var_v
   $var_key=sanitizarValor($var_key,'string');
   if (!$var_key) {
     //error al sanitizar el key: se devolvio false
+    log_error("agregarParametroObjetivo","Error al sanitizar el key: se devolvio false");
     return false;
   }
 
@@ -203,18 +210,21 @@ function agregarParametroWhere($array_params,$var_key,$var_value,$var_value_tipo
   //VALIDAR PARAMETROS
   if(!is_array($array_params) || empty($array_params) || !isset($array_params['tipo_consulta']) || !isset($array_params['params_obj']) || !isset($array_params['params_where'])) {
     //el elemento $array_params no tiene el formato necesario
+    log_error("agregarParametroWhere","El elemento array_params no tiene el formato necesario");
     return false;
   }
 
   $var_key=sanitizarValor($var_key,'string');
   if (!$var_key) {
     //error al sanitizar el key: se devolvio false
+    log_error("agregarParametroWhere","Error al sanitizar el key: se devolvio false");
     return false;
   }
 
   $var_value=sanitizarValor($var_value,$var_value_tipo);
   if (!$var_value && !$optional) {
     //error al sanitizar el valor: se devolvio false y este no es opcional
+    log_error("agregarParametroWhere","Error al sanitizar el valor: se devolvio false y este no es opcional");
     return false;
   }elseif (!$var_value && $optional) {
     $var_value="";
@@ -229,6 +239,7 @@ function agregarParametroWhere($array_params,$var_key,$var_value,$var_value_tipo
 
   if (!$condicion) {
     //error al obtener el valor de la condición especificada para el parametro
+    log_error("agregarParametroWhere","Error al obtener el valor de la condición especificada para el parametro");
     return false;
   }
 
@@ -272,39 +283,51 @@ function ejecutarConsulta($conexion,$tabla,$params,$allowed_params=false,$allowe
   //1ER PASO: VALIDACIÓN DE PARAMETROS
 
   $error_validacion=false;
+  $error_validacion_arr=array();
 
   if(($conexion instanceof PDO)==false) {
     $error_validacion=true;
+    $error_validacion_arr['$conexion']='No es PDO';
   }
   if($params['tipo_consulta']!='select' && $params['tipo_consulta']!='insert' && $params['tipo_consulta']!='update' && $params['tipo_consulta']!='delete') {
     $error_validacion=true;
+    $error_validacion_arr['$params']='El tipo de consulta no esta contemplado';
   }
   if(!$tabla || !is_string($tabla)) {
     $error_validacion=true;
+    $error_validacion_arr['$tabla']='No especificado';
   }
   if(!$params || !is_array($params) || empty($params) || !isset($params['tipo_consulta']) || !isset($params['params_obj']) || !isset($params['params_where'])) {
     $error_validacion=true;
+    $error_validacion_arr['$params']='Formato incorrecto';
   }
   if($params['tipo_consulta']=="") {
     $error_validacion=true;
+    $error_validacion_arr['$params']='Sin tipo de consulta';
   }
   if (empty($params['params_where']) && $params['tipo_consulta']!="insert" && $params['tipo_consulta']!="select") {
     $error_validacion=true;
+    $error_validacion_arr['$params']='Faltan params_where para el tipo de consulta especificado';
   }
   if(empty($params['params_obj']) && $params['tipo_consulta']!="delete") {
     $error_validacion=true;
+    $error_validacion_arr['$params']='Faltan params_obj para el tipo de consulta especificado';
   }
   if($allowed_params && (!is_array($allowed_params) || empty($allowed_params))) {
     $error_validacion=true;
+    $error_validacion_arr['$allowed_params']='Se especifico un array vacio o incorrecto';
   }
   if($allowed_where_params && (!is_array($allowed_where_params) || empty($allowed_where_params))) {
     $error_validacion=true;
+    $error_validacion_arr['$allowed_where_params']='Se especifico un array vacio o incorrecto';
   }
   if($select_especial_filters && (!is_array($select_especial_filters) || empty($select_especial_filters))) {
     $error_validacion=true;
+    $error_validacion_arr['$select_especial_filters']='Se especifico un array vacio o incorrecto';
   }
 
   if ($error_validacion) {
+    log_error("ejecutarConsulta","Error de validación",$error_validacion_arr);
     return false;
   }else {
 
@@ -313,6 +336,7 @@ function ejecutarConsulta($conexion,$tabla,$params,$allowed_params=false,$allowe
     if ($allowed_params) {
       foreach ($params['params_obj'] as $key => $value) {
         if (!in_array($value['var_key'], $allowed_params)) {
+          log_error("ejecutarConsulta","Error el var_key especificado no se encuentra dentro de los parametros permitidos en allowed_params");
           //error el var_key especificado no se encuentra dentro de los parametros permitidos
           return false;
         }
@@ -322,6 +346,7 @@ function ejecutarConsulta($conexion,$tabla,$params,$allowed_params=false,$allowe
     if ($allowed_where_params) {
       foreach ($params['params_where'] as $key => $value) {
         if (!in_array($value['var_key'], $allowed_params)) {
+          log_error("ejecutarConsulta","Error el var_key especificado no se encuentra dentro de los parametros permitidos en allowed_where_params");
           //error el var_key especificado no se encuentra dentro de los parametros permitidos
           return false;
         }
@@ -464,6 +489,7 @@ function ejecutarConsulta($conexion,$tabla,$params,$allowed_params=false,$allowe
 
       break;
       default:
+      log_error("ejecutarConsulta","Error en armado de consulta no se encontro rutina para el tipo de consulta introducido");
       return false;
       break;
     }
@@ -497,6 +523,7 @@ function ejecutarConsulta($conexion,$tabla,$params,$allowed_params=false,$allowe
 
     }else {
       //error al ejecutar la consulta
+      log_error("ejecutarConsulta","Error al ejecutar la consulta");
       return false;
     }
 
@@ -625,5 +652,55 @@ function traducirCondicion($condicion){
     return $resultado;
   }
 
+
+//CREAR LOG DIARIO DE ERRORES BASICO EN TXT ENCRIPTADO
+function log_error($codigo,$descripcion,$args=false){
+  $log_msg="";
+  $log_msg.="%reg%";
+  $log_msg.="%date%".date('d-m-Y H:i:s')."%date%";
+  $log_msg.="%cod%".$codigo."%cod%";
+  $log_msg.="%desc%".$descripcion."%desc%";
+if ($args && is_array($args) && !empty($args)) {
+  $log_msg.="%args%";
+  foreach ($args as $key => $value) {
+    $log_msg.="%el%%k%".$key."%k%%v%".$value."%v%%el%";
+  }
+  $log_msg.="%args%";
+}
+$log_msg.="%reg%";
+  $log_directorio = "lib_epms_log";
+  if (!file_exists($log_directorio)){
+      mkdir($log_directorio, 0777, true);
+  }
+  $date = date('d-m-Y');
+  $date_encrypt_end = encrypt_decrypt('encrypt', $date, $date);
+  $log_file_data = $log_directorio.'/log_' . $date ."_".$date_encrypt_end.'.log';
+  //escribir regisro encriptado en log diario
+$encrypted_msg = encrypt_decrypt('encrypt', $log_msg, $date);
+  file_put_contents($log_file_data, $encrypted_msg . "\n", FILE_APPEND);
+}
+
+
+//FUNCION PARA ENCRIPTAR/DESENCRIPTAR CONTENIDO
+function encrypt_decrypt($action, $string, $date_param) {
+    $output = false;
+    $metodo_enc = "AES-256-CBC";
+    $secret_key = 'b95e7db5ca10d0a7059984'; //KEY SECRETA TIENEN QUE CAMBIARLA
+    if (!$date_param) {
+      $iv_param = hash('sha256', date('d-m-Y'));
+    }else {
+      $iv_param = hash('sha256', $date_param);
+    }
+    $secret_iv = $iv_param;
+    $key = hash('sha256', $secret_key);
+    $iv = substr(hash('sha256', $secret_iv), 0, 16);
+    if ( $action == 'encrypt' ) {
+        $output = openssl_encrypt($string, $metodo_enc, $key, 0, $iv);
+        $output = base64_encode($output);
+    } else if( $action == 'decrypt' ) {
+        $output = openssl_decrypt(base64_decode($string), $metodo_enc, $key, 0, $iv);
+    }
+    return $output;
+}
 
   ?>
