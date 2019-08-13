@@ -7,7 +7,7 @@ require_once("lib_epms.php");
 $date = date('d-m-Y');
 $date_encrypt_end = encrypt_decrypt('encrypt', $date, $date);
 
-$fileName='lib_epms_log/log_' . $date .'_'.$date_encrypt_end.'.log';
+$fileName='lib_epms_log/log_'.$date_encrypt_end.'.log';
 
 if ( file_exists($fileName) && ($fn = fopen($fileName, "r"))!==false ) {
 
