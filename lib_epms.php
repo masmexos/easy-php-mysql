@@ -674,7 +674,7 @@ $log_msg.="%reg%";
   }
   $date = date('d-m-Y');
   $date_encrypt_end = encrypt_decrypt('encrypt', $date, $date);
-  $log_file_data = $log_directorio.'/log_' . $date ."_".$date_encrypt_end.'.log';
+  $log_file_data = $log_directorio.'/log_'.$date_encrypt_end.'.log';
   //escribir regisro encriptado en log diario
 $encrypted_msg = encrypt_decrypt('encrypt', $log_msg, $date);
   file_put_contents($log_file_data, $encrypted_msg . "\n", FILE_APPEND);
