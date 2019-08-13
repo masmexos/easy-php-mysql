@@ -3,8 +3,6 @@ Liberia para facilitar operaciones a consultas MySQL de forma segura y rápida e
 
 Proximos cambios:
 
--Log de errores
-
 -Consultas con JOIN
 
 -Simplificación
